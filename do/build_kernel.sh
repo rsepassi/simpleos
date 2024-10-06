@@ -24,14 +24,14 @@ CFLAGS="
 -mno-sse
 -mno-sse2
 -mcmodel=kernel
--isystem freestnd-c-hdrs
--I$BUILD/limine/build/include
 "
 
 zig build-lib -target x86_64-freestanding -O ReleaseSafe \
   --name kernel \
   -cflags $CFLAGS -- \
-  $(ls $ROOT/src/*.c)
+  -isystem freestnd-c-hdrs \
+  -I$BUILD/limine/build/include \
+  $ROOT/src/kernel.c
 
 zig cc \
   -target x86_64-freestanding -O2 \

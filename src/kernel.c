@@ -1,12 +1,28 @@
-#include <stdint.h>
-#include <stddef.h>
+// https://github.com/limine-bootloader/limine/blob/v8.x/PROTOCOL.md
+#include "kernel.h"
 
-#include "limine.h"
+void kfb_paint(Kctx* kctx, uint32_t color) {
+  uint32_t* fb_base = (uint32_t*)kctx->fb->address;
+  size_t w = kctx->fb->width;
+  size_t h = kctx->fb->height;
+  size_t stride = kctx->fb->pitch / 4;
+
+  for (size_t y = 0; y < h; ++y) {
+    for (size_t x = 0; x < w; ++x) {
+      fb_base[y*stride+x] = color;
+    }
+  }
+}
+
+__attribute__((used, section(".requests_start_marker")))
+static volatile LIMINE_REQUESTS_START_MARKER;
+
+__attribute__((used, section(".requests_end_marker")))
+static volatile LIMINE_REQUESTS_END_MARKER;
 
 // Set the base revision to 2, this is recommended as this is the latest
 // base revision described by the Limine boot protocol specification.
 // See specification for further info.
-
 __attribute__((used, section(".requests")))
 static volatile LIMINE_BASE_REVISION(2);
 
@@ -16,49 +32,94 @@ static volatile LIMINE_BASE_REVISION(2);
 // once or marked as used with the "used" attribute as done here.
 
 __attribute__((used, section(".requests")))
-static volatile struct limine_framebuffer_request framebuffer_request = {
+static volatile struct limine_framebuffer_request kbootreq_fb = {
   .id = LIMINE_FRAMEBUFFER_REQUEST,
   .revision = 0
 };
 
-// Finally, define the start and end markers for the Limine requests.
-// These can also be moved anywhere, to any .c file, as seen fit.
+__attribute__((used, section(".requests")))
+static volatile struct limine_firmware_type_request kbootreq_firmware = {
+  .id = LIMINE_FIRMWARE_TYPE_REQUEST,
+  .revision = 0
+};
 
-__attribute__((used, section(".requests_start_marker")))
-static volatile LIMINE_REQUESTS_START_MARKER;
+__attribute__((used, section(".requests")))
+static volatile struct limine_stack_size_request kbootreq_ss = {
+  .id = LIMINE_STACK_SIZE_REQUEST,
+  .revision = 0,
+  .stack_size = 2 << 20,
+};
 
-__attribute__((used, section(".requests_end_marker")))
-static volatile LIMINE_REQUESTS_END_MARKER;
+__attribute__((used, section(".requests")))
+static volatile struct limine_hhdm_request kbootreq_hhdm = {
+  .id = LIMINE_HHDM_REQUEST,
+  .revision = 0,
+};
 
-// Halt and catch fire function.
-static void hcf(void) {
-  for (;;) __asm__ ("hlt");
+__attribute__((used, section(".requests")))
+static volatile struct limine_smp_request kbootreq_smp = {
+  .id = LIMINE_SMP_REQUEST,
+  .revision = 0,
+#if defined(__x86_64__)
+  .flags = 1,  // x2apic
+#endif
+};
+
+__attribute__((used, section(".requests")))
+static volatile struct limine_rsdp_request kbootreq_rsdp = {
+  .id = LIMINE_RSDP_REQUEST,
+  .revision = 0,
+};
+
+__attribute__((used, section(".requests")))
+static volatile struct limine_memmap_request kbootreq_mmap = {
+  .id = LIMINE_MEMMAP_REQUEST,
+  .revision = 0,
+};
+
+__attribute__((used, section(".requests")))
+static volatile struct limine_efi_system_table_request kbootreq_efisys = {
+  .id = LIMINE_EFI_SYSTEM_TABLE_REQUEST,
+  .revision = 0,
+};
+
+__attribute__((used, section(".requests")))
+static volatile struct limine_boot_time_request kbootreq_boottime = {
+  .id = LIMINE_BOOT_TIME_REQUEST,
+  .revision = 0,
+};
+
+void kinit(Kctx* kctx) {
+  KASSERT(LIMINE_BASE_REVISION_SUPPORTED);
+  KASSERT(kbootreq_fb.response != NULL &&
+          kbootreq_fb.response->framebuffer_count >= 1);
+  kctx->fb = kbootreq_fb.response->framebuffers[0];
+
+  KASSERT(kbootreq_firmware.response != NULL);
+  KASSERT(kbootreq_firmware.response->firmware_type == LIMINE_FIRMWARE_TYPE_UEFI64);
+
+  KASSERT(kbootreq_hhdm.response != NULL);
+  kctx->hhdm_offset = kbootreq_hhdm.response->offset;
+
+  KASSERT(kbootreq_smp.response != NULL);
+  kctx->smp = kbootreq_smp.response;
+
+  KASSERT(kbootreq_mmap.response != NULL);
+  kctx->mmap = kbootreq_mmap.response;
+  for (int i = 0; i < kctx->mmap->entry_count; ++i) {
+    struct limine_memmap_entry* entry = kctx->mmap->entries[i];
+    if (entry->type != LIMINE_MEMMAP_USABLE) continue;
+  }
+
+  KASSERT(kbootreq_rsdp.response != NULL);
+  kctx->rsdp = kbootreq_rsdp.response->address;
+
+  KASSERT(kbootreq_efisys.response != NULL);
+  kctx->efisys = kbootreq_efisys.response->address;
+
+  KASSERT(kbootreq_boottime.response != NULL);
+  kctx->boot_time = kbootreq_boottime.response->boot_time;
 }
 
-// The following will be our kernel's entry point.
-// If renaming kmain() to something else, make sure to change the
-// linker script accordingly.
-void kmain(void) {
-  // Ensure the bootloader actually understands our base revision (see spec).
-  if (!LIMINE_BASE_REVISION_SUPPORTED) {
-      hcf();
-  }
-
-  // Ensure we got a framebuffer.
-  if (framebuffer_request.response == NULL
-   || framebuffer_request.response->framebuffer_count < 1) {
-      hcf();
-  }
-
-  // Fetch the first framebuffer.
-  struct limine_framebuffer *framebuffer = framebuffer_request.response->framebuffers[0];
-
-  // Note: we assume the framebuffer model is RGB with 32-bit pixels.
-  for (size_t i = 0; i < 300; i++) {
-      volatile uint32_t *fb_ptr = framebuffer->address;
-      fb_ptr[i * (framebuffer->pitch / 4) + i] = 0xff00ff;
-  }
-
-  // We're done, just hang...
-  hcf();
-}
+#include "kmain.c"
+#include "stdmem.c"
