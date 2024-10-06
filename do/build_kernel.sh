@@ -12,8 +12,6 @@ tar xf $ROOT/deps/freestnd-c-hdrs-0bsd.tar.gz -C freestnd-c-hdrs --strip-compone
 
 CFLAGS="
 -std=c11
--nostdinc
--ffreestanding
 -fno-stack-protector
 -fno-stack-check
 -fno-lto
@@ -26,24 +24,20 @@ CFLAGS="
 -mno-sse
 -mno-sse2
 -mcmodel=kernel
--m64
--march=x86-64
 -isystem freestnd-c-hdrs
 -I$BUILD/limine/build/include
 "
 
-SRCS="
-$(ls $ROOT/src/*.c)
-"
-for src in $SRCS
-do
-  clang $CFLAGS -c $src -o "$(basename $src).o"
-done
+zig build-lib -target x86_64-freestanding -O ReleaseSafe \
+  --name kernel \
+  -cflags $CFLAGS -- \
+  $(ls $ROOT/src/*.c)
 
-ld.lld -o kernel \
-  -nostdlib \
-  -static \
+zig cc \
+  -target x86_64-freestanding -O2 \
+  -o kernel \
   -z max-page-size=0x1000 \
-  -gc-sections \
+  -Wl,--gc-sections \
+  -e kmain \
   -T$ROOT/src/kernel.ld \
-  *.o
+  libkernel.a
