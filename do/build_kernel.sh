@@ -15,9 +15,9 @@ CFLAGS="
 -fno-stack-protector
 -fno-stack-check
 -fno-lto
--fno-PIC
 -ffunction-sections
 -fdata-sections
+-mno-implicit-float
 -mno-red-zone
 -mno-80387
 -mno-mmx
@@ -31,7 +31,9 @@ zig build-lib -target x86_64-freestanding -O ReleaseSafe \
   -cflags $CFLAGS -- \
   -isystem freestnd-c-hdrs \
   -I$BUILD/limine/build/include \
-  $ROOT/src/kernel.c
+  $ROOT/src/kernel.c \
+  $ROOT/src/kmain.c \
+  $ROOT/src/stdmem.c
 
 zig cc \
   -target x86_64-freestanding -O2 \

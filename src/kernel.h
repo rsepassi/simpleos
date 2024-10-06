@@ -18,7 +18,7 @@ typedef struct {
   int64_t boot_time;
 } Kctx;
 
-static inline void kinit(Kctx*);
+void kinit(Kctx*);
 
 #define FB_RGB(r, g, b) (((r) << 16) + ((g) << 8) + (b))
-static inline void kfb_paint(Kctx*, uint32_t color);
+void kfb_paint(Kctx*, uint32_t color);

@@ -1,19 +1,6 @@
 // https://github.com/limine-bootloader/limine/blob/v8.x/PROTOCOL.md
 #include "kernel.h"
 
-void kfb_paint(Kctx* kctx, uint32_t color) {
-  uint32_t* fb_base = (uint32_t*)kctx->fb->address;
-  size_t w = kctx->fb->width;
-  size_t h = kctx->fb->height;
-  size_t stride = kctx->fb->pitch / 4;
-
-  for (size_t y = 0; y < h; ++y) {
-    for (size_t x = 0; x < w; ++x) {
-      fb_base[y*stride+x] = color;
-    }
-  }
-}
-
 __attribute__((used, section(".requests_start_marker")))
 static volatile LIMINE_REQUESTS_START_MARKER;
 
@@ -111,6 +98,7 @@ void kinit(Kctx* kctx) {
     if (entry->type != LIMINE_MEMMAP_USABLE) continue;
   }
 
+
   KASSERT(kbootreq_rsdp.response != NULL);
   kctx->rsdp = kbootreq_rsdp.response->address;
 
@@ -121,5 +109,15 @@ void kinit(Kctx* kctx) {
   kctx->boot_time = kbootreq_boottime.response->boot_time;
 }
 
-#include "kmain.c"
-#include "stdmem.c"
+void kfb_paint(Kctx* kctx, uint32_t color) {
+  uint32_t* fb_base = (uint32_t*)kctx->fb->address;
+  size_t w = kctx->fb->width;
+  size_t h = kctx->fb->height;
+  size_t stride = kctx->fb->pitch / 4;
+
+  for (size_t y = 0; y < h; ++y) {
+    for (size_t x = 0; x < w; ++x) {
+      fb_base[y*stride+x] = color;
+    }
+  }
+}
