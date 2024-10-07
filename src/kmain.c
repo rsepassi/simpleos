@@ -7,11 +7,15 @@ void kmain(void) {
 
   kinit(kctx);
   kterm_init(kctx);
-  klogs("xos initializing...");
+  klogf("xos boot t=%d", kctx->boot_time);
 
   klog_init(kctx);
   kmem_init(kctx);
 
   klogs("halt");
   KASSERT(false);
+}
+
+void _putchar(char character) {
+  flanterm_write(kctx_static.term.ctx, &character, 1);
 }

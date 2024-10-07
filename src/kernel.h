@@ -14,7 +14,8 @@
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 
 #define KASSERT(cond) do { if (!(cond)) { for (;;) __asm__ ("hlt"); } } while(0)
-#define KERNEL_STACK_SIZE (2 << 20)
+#define KERNEL_STACK_SZ (2 << 20)
+#define KERNEL_LOG_BUF_SZ (2 << 10)
 
 typedef struct Kmem_s Kmem;
 
@@ -51,7 +52,9 @@ void kterm_write(Kctx* kctx, Kstr s);
 void klog_init(Kctx*);
 #define klog(s) klog2(kctx, s, __FILENAME__, __LINE__)
 #define klogs(s) klog(kstr(s))
+#define klogf(fmt, ...) klogf2(kctx, __FILENAME__, __LINE__, fmt, ##__VA_ARGS__)
 void klog2(Kctx*, Kstr s, char* fname, size_t line);
+void klogf2(Kctx* kctx, char* fname, size_t line, char* fmt, ...);
 
 void kmem_init(Kctx*);
 

@@ -22,14 +22,29 @@ var klibc = Fn.new { |b, args|
       "-fdata-sections",
     ],
     "srcs": [
-      "src/string/strrchr.c",
-      "src/string/memrchr.c",
-      "src/string/strlen.c",
-      "src/string/strrchr.c",
+      // Memory
       "src/string/memcpy.c",
       "src/string/memcmp.c",
       "src/string/memset.c",
       "src/string/memmove.c",
+      // String
+      "src/string/memchr.c",
+      "src/string/strrchr.c",
+      "src/string/memrchr.c",
+      "src/string/strlen.c",
+      "src/string/strrchr.c",
+      "src/string/strnlen.c",
     ],
+  })
+}
+
+var printf = Fn.new { |b, args|
+  Process.chdir(b.untar(b.fetch(
+    "https://api.github.com/repos/mpaland/printf/tarball/d3b9846",
+    "3b244e27d7ad5b67aa179e8074455fcfb20b7505c97ba19ffcbee8cf41109176")))
+  var zig = b.deptool("@xos//toolchains/zig")
+  zig.ez.cLib(b, {
+    "srcs": ["printf.c"],
+    "include": ["printf.h"],
   })
 }

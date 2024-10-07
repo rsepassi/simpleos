@@ -40,7 +40,7 @@ __attribute__((used, section(".requests")))
 static volatile struct limine_stack_size_request kbootreq_ss = {
   .id = LIMINE_STACK_SIZE_REQUEST,
   .revision = 0,
-  .stack_size = KERNEL_STACK_SIZE,
+  .stack_size = KERNEL_STACK_SZ,
 };
 
 __attribute__((used, section(".requests")))
