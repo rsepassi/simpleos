@@ -12,6 +12,11 @@ void kmain(void) {
 
   kmem_init(kctx);
 
+  void* p = kmem_page_alloc(kctx);
+  klogf("nalloc=%d", kctx->kmem->nalloc);
+  kmem_page_free(kctx, p);
+  klogf("nalloc=%d", kctx->kmem->nalloc);
+
   klogs("halt");
   KSPIN();
 }

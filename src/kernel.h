@@ -20,8 +20,6 @@
 #define KERNEL_STACK_SZ (2 << 20)
 #define KERNEL_LOG_BUF_SZ (2 << 10)
 
-typedef struct Kmem_s Kmem;
-
 typedef struct {
   uint8_t* bytes;
   uint64_t len;
@@ -31,6 +29,15 @@ typedef struct {
 typedef struct {
   struct flanterm_context* ctx;
 } Kterm;
+
+typedef struct {
+  uint64_t npages;
+  uint64_t seg0_idx;
+  uint64_t metadata_npages;
+  uint64_t nalloc;
+  uint8_t* bitmap;
+  void* bitmap_data;
+} Kmem;
 
 typedef struct {
   // Boot context
@@ -61,6 +68,8 @@ void klog2(Kctx*, Kstr s, const char* fname, size_t line);
 void klogf2(Kctx* kctx, const char* fname, size_t line, const char* fmt, ...);
 
 void kmem_init(Kctx*);
+void* kmem_page_alloc(Kctx* kctx);
+void kmem_page_free(Kctx* kctx, void* p);
 
 #define FB_RGB(r, g, b) (((r) << kctx->fb->red_mask_shift) + \
     ((g) << kctx->fb->green_mask_shift) + \
