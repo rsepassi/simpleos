@@ -13,7 +13,10 @@
 
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 
-#define KASSERT(cond) do { if (!(cond)) { for (;;) __asm__ ("hlt"); } } while(0)
+#define KSPIN() do { for (;;) __asm__ ("hlt"); } while(0)
+#define KASSERT(cond) do { if (!(cond)) KSPIN(); } while(0)
+#define KCHECK(cond, fmt, ...) do { if (!(cond)) { klogf(fmt, ##__VA_ARGS__); KSPIN(); } } while(0)
+
 #define KERNEL_STACK_SZ (2 << 20)
 #define KERNEL_LOG_BUF_SZ (2 << 10)
 
@@ -48,18 +51,20 @@ void kinit(Kctx*);
 
 void kterm_init(Kctx*);
 void kterm_write(Kctx* kctx, Kstr s);
+void kterm_printf(Kctx* kctx, char* fmt, ...);
+void kterm_vprintf(Kctx* kctx, char* fmt, va_list);
 
-void klog_init(Kctx*);
 #define klog(s) klog2(kctx, s, __FILENAME__, __LINE__)
 #define klogs(s) klog(kstr(s))
 #define klogf(fmt, ...) klogf2(kctx, __FILENAME__, __LINE__, fmt, ##__VA_ARGS__)
-void klog2(Kctx*, Kstr s, char* fname, size_t line);
-void klogf2(Kctx* kctx, char* fname, size_t line, char* fmt, ...);
+void klog2(Kctx*, Kstr s, const char* fname, size_t line);
+void klogf2(Kctx* kctx, const char* fname, size_t line, const char* fmt, ...);
 
 void kmem_init(Kctx*);
 
-// TODO: use shifts from limine_framebuffer
-#define FB_RGB(r, g, b) (((r) << 16) + ((g) << 8) + (b))
+#define FB_RGB(r, g, b) (((r) << kctx->fb->red_mask_shift) + \
+    ((g) << kctx->fb->green_mask_shift) + \
+    ((b) << kctx->fb->blue_mask_shift))
 #define FB_RED FB_RGB(255, 0, 0)
 #define FB_BLUE FB_RGB(0, 0, 255)
 #define FB_GREEN FB_RGB(0, 255, 0)

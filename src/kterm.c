@@ -1,4 +1,9 @@
+#include <stdarg.h>
+
 #include "kernel.h"
+#include "printf.h"
+
+static uint8_t logbuf2[KERNEL_LOG_BUF_SZ];
 
 void kterm_init(Kctx* kctx) {
   Kterm* term = &kctx->term;
@@ -27,5 +32,17 @@ void kterm_init(Kctx* kctx) {
 }
 
 void kterm_write(Kctx* kctx, Kstr s) {
-  flanterm_write(kctx->term.ctx, s.bytes, s.len);
+  flanterm_write(kctx->term.ctx, (const char*)s.bytes, s.len);
+}
+
+void kterm_vprintf(Kctx* kctx, char* fmt, va_list ap) {
+  int len = vsnprintf((char*)logbuf2, KERNEL_LOG_BUF_SZ, fmt, ap);
+  kterm_write(kctx, (Kstr){logbuf2, len});
+}
+
+void kterm_printf(Kctx* kctx, char* fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  kterm_vprintf(kctx, fmt, ap);
+  va_end(ap);
 }

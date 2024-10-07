@@ -4,16 +4,16 @@ static Kctx kctx_static;
 
 void kmain(void) {
   Kctx* kctx = &kctx_static;
+  *kctx = (Kctx){0};
 
   kinit(kctx);
   kterm_init(kctx);
-  klogf("xos boot t=%d", kctx->boot_time);
+  klogf("xos boot kctx=%p t=%d", kctx, kctx->boot_time);
 
-  klog_init(kctx);
   kmem_init(kctx);
 
   klogs("halt");
-  KASSERT(false);
+  KSPIN();
 }
 
 void _putchar(char character) {
