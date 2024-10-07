@@ -3,6 +3,10 @@ set -ex
 ROOT=$PWD
 BUILD=$ROOT/build
 
+LIMINE_CFG=${1:-$ROOT/src/limine.conf}
+KERNEL=${2:-$BUILD/kernel/kernel}
+LIMINEDIR=${3:-$BUILD/limine/build}
+
 rm -rf $BUILD/boot
 mkdir -p $BUILD/boot
 cd $BUILD/boot
@@ -10,11 +14,9 @@ cd $BUILD/boot
 IMG=xos.img
 FAT=$IMG.fat
 
-KERNEL=$BUILD/kernel/kernel
-EFI=$BUILD/limine/build/share/limine/BOOTX64.EFI
-BIOS=$BUILD/limine/build/share/limine/limine-bios.sys
-LIMINE=$BUILD/limine/build/bin/limine
-LIMINE_CFG=$ROOT/src/limine.conf
+EFI=$LIMINEDIR/share/limine/BOOTX64.EFI
+BIOS=$LIMINEDIR/share/limine/limine-bios.sys
+LIMINE=$LIMINEDIR/bin/limine
 
 # Create and populate the FAT16 filesystem
 dd if=/dev/zero of=$FAT bs=6M count=1

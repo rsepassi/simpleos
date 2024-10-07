@@ -19,6 +19,12 @@ static volatile LIMINE_BASE_REVISION(2);
 // once or marked as used with the "used" attribute as done here.
 
 __attribute__((used, section(".requests")))
+static volatile struct limine_boot_time_request kbootreq_boottime = {
+  .id = LIMINE_BOOT_TIME_REQUEST,
+  .revision = 0,
+};
+
+__attribute__((used, section(".requests")))
 static volatile struct limine_framebuffer_request kbootreq_fb = {
   .id = LIMINE_FRAMEBUFFER_REQUEST,
   .revision = 0
@@ -34,7 +40,7 @@ __attribute__((used, section(".requests")))
 static volatile struct limine_stack_size_request kbootreq_ss = {
   .id = LIMINE_STACK_SIZE_REQUEST,
   .revision = 0,
-  .stack_size = 2 << 20,
+  .stack_size = KERNEL_STACK_SIZE,
 };
 
 __attribute__((used, section(".requests")))
@@ -70,14 +76,12 @@ static volatile struct limine_efi_system_table_request kbootreq_efisys = {
   .revision = 0,
 };
 
-__attribute__((used, section(".requests")))
-static volatile struct limine_boot_time_request kbootreq_boottime = {
-  .id = LIMINE_BOOT_TIME_REQUEST,
-  .revision = 0,
-};
-
 void kinit(Kctx* kctx) {
   KASSERT(LIMINE_BASE_REVISION_SUPPORTED);
+
+  KASSERT(kbootreq_boottime.response != NULL);
+  kctx->boot_time = kbootreq_boottime.response->boot_time;
+
   KASSERT(kbootreq_fb.response != NULL &&
           kbootreq_fb.response->framebuffer_count >= 1);
   kctx->fb = kbootreq_fb.response->framebuffers[0];
@@ -93,20 +97,15 @@ void kinit(Kctx* kctx) {
 
   KASSERT(kbootreq_mmap.response != NULL);
   kctx->mmap = kbootreq_mmap.response;
-  for (int i = 0; i < kctx->mmap->entry_count; ++i) {
-    struct limine_memmap_entry* entry = kctx->mmap->entries[i];
-    if (entry->type != LIMINE_MEMMAP_USABLE) continue;
-  }
-
 
   KASSERT(kbootreq_rsdp.response != NULL);
   kctx->rsdp = kbootreq_rsdp.response->address;
 
   KASSERT(kbootreq_efisys.response != NULL);
-  kctx->efisys = kbootreq_efisys.response->address;
+  KASSERT(kbootreq_efisys.response->address);
+  kctx->efisys = kctx->hhdm_offset + kbootreq_efisys.response->address;
 
-  KASSERT(kbootreq_boottime.response != NULL);
-  kctx->boot_time = kbootreq_boottime.response->boot_time;
+  kfb_paint(kctx, FB_GREEN);
 }
 
 void kfb_paint(Kctx* kctx, uint32_t color) {

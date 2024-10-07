@@ -57,3 +57,15 @@ int memcmp(const void *s1, const void *s2, size_t n) {
 
     return 0;
 }
+
+size_t strlen(const char* s) {
+  const char* a = s;
+  for (; *s; s++);
+  return s - a;
+}
+
+const char* strrchr(const char* str, int character) {
+  const char* out = 0;
+  for (; *str; ++str) { if (*str == character) out = str; }
+  return out;
+}
