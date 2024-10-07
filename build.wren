@@ -30,6 +30,7 @@ var libkernel = Fn.new { |b, args|
   var chdrs = b.dep("deps:chdrs")
   var uefi = b.dep("deps:uefi_hdrs")
   var flanterm = b.dep("deps/flanterm")
+  var klibc = b.dep("deps/klibc")
   var limineh = b.deptool("deps/limine")
 
   b.srcGlob("src/*.h")
@@ -45,6 +46,7 @@ var libkernel = Fn.new { |b, args|
     "-I", uefi.includeDir,
     "-I", "%(uefi.includeDir)/X64",
     "-I", flanterm.includeDir,
+    "-I", klibc.includeDir,
   ] + b.srcGlob("src/*.c"))
   b.installLib("libkernel.a")
 }
@@ -55,6 +57,7 @@ var kernel = Fn.new { |b, args|
   var deps = [
     b.dep(":libkernel").lib("kernel"),
     b.dep("deps/flanterm").lib("flanterm"),
+    b.dep("deps/klibc").lib("c"),
   ]
 
   zig.exec(b, ["cc",
